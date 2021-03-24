@@ -61,6 +61,7 @@ public class YokiMediaPlayer {
         }
 
         mVideoDecoderThread = new HandlerThread("video decoder thread");
+        mVideoDecoderThread.start();
         mVideoThreadHandler = new Handler(mVideoDecoderThread.getLooper());
 
         Log.i(TAG, "create video media decoder");
@@ -78,12 +79,23 @@ public class YokiMediaPlayer {
                 ByteBuffer buf = codec.getInputBuffer(index);
 
                 final int readSize = mVideoExtractor.readSampleData(buf , 0);
-                codec.queueInputBuffer(index , 0 , readSize , mVideoExtractor.getSampleTime() , 0);
+
+                if(readSize > 0){
+                    codec.queueInputBuffer(index , 0 , readSize , mVideoExtractor.getSampleTime() , 0);
+                    //next
+                    mVideoExtractor.advance();
+                }else{
+                    codec.queueInputBuffer(index , 0 , 0 , 0 , MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+                }
             }
 
             @Override
             public void onOutputBufferAvailable(@NonNull MediaCodec codec, int index, @NonNull MediaCodec.BufferInfo info) {
-
+                if(info.size > 0){
+                    codec.releaseOutputBuffer(index , 1000 * info.presentationTimeUs);
+                }else{
+                    codec.releaseOutputBuffer(index, false);
+                }
             }
 
             @Override
