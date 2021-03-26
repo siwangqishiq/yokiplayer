@@ -52,9 +52,17 @@ public class VideoPlayerActivity extends AppCompatActivity {
             }
         });
 
+        findViewById(R.id.pause_btn).setOnClickListener((v)->{
+            mYokiMediaPlayer.pause();
+        });
+
+        findViewById(R.id.resume_btn).setOnClickListener((v)->{
+            mYokiMediaPlayer.resume();
+        });
+
 //        mTextureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener(){
 //            @Override
-//            public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surfaceTexture, int width, int height) {
+//            public void onSurfaceTextureAvailable(@NonNull final SurfaceTexture surfaceTexture, int width, int height) {
 //                final Surface surface = new Surface(surfaceTexture);
 //                mYokiMediaPlayer.openFile(mFilePath , surface);
 //            }

@@ -8,7 +8,6 @@ import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.media.MediaSync;
 import android.media.PlaybackParams;
-import android.media.SyncParams;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.text.TextUtils;
@@ -41,7 +40,7 @@ public class YokiMediaPlayer {
 
     private String mFilePath;
 
-    private AtomicBoolean isRunning = new AtomicBoolean(false);
+    private AtomicBoolean isPlaying = new AtomicBoolean(false);
 
     public YokiMediaPlayer(){
     }
@@ -64,14 +63,8 @@ public class YokiMediaPlayer {
             prepareAudioDecoder();
             prepareVideoDecoder();
 
-            isRunning.set(true);
 
-            mMediaSync.setPlaybackParams(new PlaybackParams().setSpeed(1.0f));
-
-            mAudioDecoder.start();
-
-            mVideoDecoder.start();
-
+            resume();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -94,15 +87,16 @@ public class YokiMediaPlayer {
                 @Override
                 public void onAudioBufferConsumed(@NonNull MediaSync sync, @NonNull ByteBuffer audioBuffer, int bufferId) {
                     //System.out.println("onAudioBufferConsumed => " + audioBuffer.capacity() +"  bufferId = " + bufferId);
-//                    if(mAudioDecoder != null){
-//                        mAudioDecoder.releaseOutputBuffer(bufferId , false);
-//                    }
-                    audioBuffer.clear();
+                    if(!isPlaying.get()){
+                        return;
+                    }
+
+                    if(mAudioDecoder != null){
+                        mAudioDecoder.releaseOutputBuffer(bufferId , false);
+                    }
                 }
             } , null);
 
-//            final SyncParams syncParams = new SyncParams().allowDefaults();
-//            mMediaSync.setSyncParams(syncParams);
             mMediaSync.setOnErrorListener(new MediaSync.OnErrorListener() {
                 @Override
                 public void onError(@NonNull MediaSync sync, int what, int extra) {
@@ -130,7 +124,7 @@ public class YokiMediaPlayer {
         mAudioDecoder.setCallback(new MediaCodec.Callback() {
             @Override
             public void onInputBufferAvailable(@NonNull MediaCodec codec, int index) {
-                if(!isRunning.get()){
+                if(!isPlaying.get()){
                     return;
                 }
 
@@ -152,19 +146,19 @@ public class YokiMediaPlayer {
             public void onOutputBufferAvailable(@NonNull MediaCodec codec, int bufferId, @NonNull MediaCodec.BufferInfo info) {
                 System.out.println("audio info size = " + info.size +"  presentationTimeUs = " + info.presentationTimeUs);
 
-                if(!isRunning.get()){
+                if(!isPlaying.get()){
                     return;
                 }
 
                 if(info.size > 0){
                     ByteBuffer buf = codec.getOutputBuffer(bufferId);
-                    ByteBuffer copyBuffer = ByteBuffer.allocate(buf.remaining());
-                    copyBuffer.put(buf);
-                    copyBuffer.flip();
-
-                    codec.releaseOutputBuffer(bufferId , false);
+//                    ByteBuffer copyBuffer = ByteBuffer.allocate(buf.remaining());
+//                    copyBuffer.put(buf);
+//                    copyBuffer.flip();
+//
+//                    codec.releaseOutputBuffer(bufferId , false);
                     if(mMediaSync != null){
-                        mMediaSync.queueAudio(copyBuffer  , bufferId , info.presentationTimeUs);
+                        mMediaSync.queueAudio(buf  , bufferId , info.presentationTimeUs);
                     }
                 }else{
                     codec.releaseOutputBuffer(bufferId , false);
@@ -180,32 +174,22 @@ public class YokiMediaPlayer {
             public void onOutputFormatChanged(@NonNull MediaCodec codec, @NonNull MediaFormat format) {
 
             }
-        } , new Handler());
+        } , mAudioHandler);
     }
 
     private AudioTrack createAudioTrack(){
-//        MediaFormat mediaFormat = mAudioExtractor.getTrackFormat(mAudioExtractor.getSampleTrackIndex());
-//        int sampleRateInHz = mediaFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
-//        int channelConfig = (mediaFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT) == 1 ? AudioFormat.CHANNEL_OUT_MONO : AudioFormat.CHANNEL_OUT_STEREO);
-//        int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
-//        int minBufferSizeInBytes = AudioTrack.getMinBufferSize(sampleRateInHz, channelConfig, audioFormat);
-//
-//        final int frameCount = 200 * sampleRateInHz / 1000;
-//        final int frameSizeInBytes = Integer.bitCount(channelConfig) * getBytesPerSample(audioFormat);
-//        // ensure we consider application requirements for writing audio data
-//        minBufferSizeInBytes = 2 * Math.max(minBufferSizeInBytes, frameCount * frameSizeInBytes);
-//        mAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, sampleRateInHz, channelConfig, audioFormat, minBufferSizeInBytes, AudioTrack.MODE_STREAM);
-//        return mAudioTrack;
-        MediaFormat format = mAudioExtractor.getTrackFormat(mAudioExtractor.getSampleTrackIndex());
-        int mnSampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE);
+        MediaFormat mediaFormat = mAudioExtractor.getTrackFormat(mAudioExtractor.getSampleTrackIndex());
+        int sampleRateInHz = mediaFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
+        int channelConfig = (mediaFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT) == 1 ? AudioFormat.CHANNEL_OUT_MONO : AudioFormat.CHANNEL_OUT_STEREO);
+        int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
+        int minBufferSizeInBytes = AudioTrack.getMinBufferSize(sampleRateInHz, channelConfig, audioFormat);
 
-        int buffsize = AudioTrack.getMinBufferSize(mnSampleRate, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT);
-        AudioTrack audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, mnSampleRate,
-                AudioFormat.CHANNEL_OUT_STEREO,
-                AudioFormat.ENCODING_PCM_16BIT,
-                buffsize,
-                AudioTrack.MODE_STREAM);
-        return audioTrack;
+        final int frameCount = 200 * sampleRateInHz / 1000;
+        final int frameSizeInBytes = Integer.bitCount(channelConfig) * getBytesPerSample(audioFormat);
+        // ensure we consider application requirements for writing audio data
+        minBufferSizeInBytes = 2 * Math.max(minBufferSizeInBytes, frameCount * frameSizeInBytes);
+        mAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, sampleRateInHz, channelConfig, audioFormat, minBufferSizeInBytes, AudioTrack.MODE_STREAM);
+        return mAudioTrack;
     }
 
 
@@ -242,7 +226,7 @@ public class YokiMediaPlayer {
             private long renderStart = -1;
             @Override
             public void onInputBufferAvailable(@NonNull MediaCodec codec, int index) {
-                if(!isRunning.get())
+                if(!isPlaying.get())
                     return;
 
                 if(mVideoExtractor.getSampleTrackIndex() == -1){
@@ -251,7 +235,6 @@ public class YokiMediaPlayer {
 
                 ByteBuffer buf = codec.getInputBuffer(index);
                 final int readSize = mVideoExtractor.readSampleData(buf , 0);
-
                 //System.out.println("readSize = " + readSize +" index = " + index);
 
                 if(readSize > 0){
@@ -266,33 +249,18 @@ public class YokiMediaPlayer {
             @Override
             public void onOutputBufferAvailable(@NonNull MediaCodec codec, int index, @NonNull MediaCodec.BufferInfo info) {
                 System.out.println("Video info size = " + info.size +"  presentationTimeUs = " + info.presentationTimeUs);
-                if(!isRunning.get()){
+                if(!isPlaying.get()){
                     return;
                 }
 
                 //System.out.println("getOutputFormat ->" + bufferFormat);
                 if(info.size > 0){
-                    long presentTime = info.presentationTimeUs / 1000;
-
-//                    if(renderStart < 0 ){
-//                        renderStart = System.currentTimeMillis() - presentTime;
-//                    }
-//                    long delay = renderStart + presentTime - System.currentTimeMillis();
-//                    // System.out.println("delayTime  = " + delay);
-//                    if (delay > 0) {
-//                        try {
-//                            Thread.sleep(delay);
-//                        } catch (InterruptedException e) {
-//                            e.printStackTrace();
-//                        }
-//                    }
-
-                    if(isRunning.get()){
+                    if(isPlaying.get()){
                         codec.releaseOutputBuffer(index ,  info.presentationTimeUs * 1000);
                     }
 //                    codec.releaseOutputBuffer(index ,  true);
                 }else{
-                    if(isRunning.get()){
+                    if(isPlaying.get()){
                         codec.releaseOutputBuffer(index, false);
                     }
                 }
@@ -307,11 +275,11 @@ public class YokiMediaPlayer {
             public void onOutputFormatChanged(@NonNull MediaCodec codec, @NonNull MediaFormat format) {
 
             }
-        },new Handler());
+        },mVideoThreadHandler);
     }
 
     public void release(){
-        isRunning.set(false);
+        isPlaying.set(false);
 
         if(mMediaSync != null){
             mMediaSync.flush();
@@ -345,6 +313,35 @@ public class YokiMediaPlayer {
             mAudioDecoder.release();
         }
     }
+
+    public void pause(){
+        isPlaying.set(false);
+
+        mMediaSync.setPlaybackParams(new PlaybackParams().setSpeed(0.0f));
+
+        if(mAudioDecoder != null){
+            mAudioDecoder.stop();
+        }
+
+        if(mVideoDecoder != null){
+            mVideoDecoder.stop();
+        }
+    }
+
+    public void resume(){
+        isPlaying.set(true);
+        mMediaSync.setPlaybackParams(new PlaybackParams().setSpeed(1.0f));
+
+        if(mAudioDecoder != null){
+            mAudioDecoder.start();
+        }
+
+        if(mVideoDecoder != null){
+            mVideoDecoder.start();
+        }
+    }
+
+
 
     public static int getBytesPerSample(int audioFormat) {
         switch (audioFormat) {

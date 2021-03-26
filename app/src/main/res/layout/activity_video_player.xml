@@ -24,4 +24,22 @@
         app:layout_constraintRight_toRightOf="parent"
         android:layout_width="match_parent"
         android:layout_height="200dp" />
+
+    <Button
+        android:id="@+id/pause_btn"
+        android:text="暂停"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/surface_view"
+        app:layout_constraintLeft_toLeftOf="parent"
+        />
+
+    <Button
+        android:id="@+id/resume_btn"
+        android:text="继续"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/surface_view"
+        app:layout_constraintLeft_toRightOf="@id/pause_btn"
+        />
 </androidx.constraintlayout.widget.ConstraintLayout>
