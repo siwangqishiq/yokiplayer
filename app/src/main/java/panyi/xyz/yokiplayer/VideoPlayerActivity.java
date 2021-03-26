@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.graphics.SurfaceTexture;
 import android.os.Bundle;
 import android.view.Surface;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.TextureView;
 
 import androidx.annotation.NonNull;
@@ -21,7 +23,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
     }
 
     private String mFilePath;
-    private TextureView mTextureView;
+    private SurfaceView mTextureView;
     private YokiMediaPlayer mYokiMediaPlayer;
 
     @Override
@@ -33,28 +35,45 @@ public class VideoPlayerActivity extends AppCompatActivity {
         mTextureView = findViewById(R.id.surface_view);
         mYokiMediaPlayer = new YokiMediaPlayer();
 
-        mTextureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener(){
+        mTextureView.getHolder().addCallback(new SurfaceHolder.Callback() {
             @Override
-            public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surfaceTexture, int width, int height) {
-                final Surface surface = new Surface(surfaceTexture);
-                mYokiMediaPlayer.openFile(mFilePath , surface);
+            public void surfaceCreated(@NonNull SurfaceHolder holder) {
+                mYokiMediaPlayer.openFile(mFilePath , holder.getSurface());
             }
 
             @Override
-            public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture surfaceTexture, int width, int height) {
+            public void surfaceChanged(@NonNull SurfaceHolder holder, int format, int width, int height) {
 
             }
 
             @Override
-            public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture surfaceTexture) {
-                return false;
-            }
-
-            @Override
-            public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surfaceTexture) {
+            public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
 
             }
         });
+
+//        mTextureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener(){
+//            @Override
+//            public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surfaceTexture, int width, int height) {
+//                final Surface surface = new Surface(surfaceTexture);
+//                mYokiMediaPlayer.openFile(mFilePath , surface);
+//            }
+//
+//            @Override
+//            public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture surfaceTexture, int width, int height) {
+//
+//            }
+//
+//            @Override
+//            public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture surfaceTexture) {
+//                return false;
+//            }
+//
+//            @Override
+//            public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surfaceTexture) {
+//
+//            }
+//        });
     }
 
     @Override
