@@ -12,8 +12,7 @@ import android.os.Build;
 import android.os.Bundle;
 
 import java.util.List;
-
-import me.rosuh.filepicker.config.FilePickerManager;
+import picchooser.SelectPictureActivity;
 
 public class MainActivity extends AppCompatActivity {
     public static final int REQUEST_CODE_SELECT_FILE = 53;
@@ -24,7 +23,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE} , 101);
+        requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.MANAGE_EXTERNAL_STORAGE} , 101);
 
         findViewById(R.id.select_file_btn).setOnClickListener((v)->{
             selectFile();
@@ -39,19 +39,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void selectFile(){
-        FilePickerManager.INSTANCE.from(this).forResult(REQUEST_CODE_SELECT_FILE);
+        //FilePickerManager.INSTANCE.from(this).forResult(REQUEST_CODE_SELECT_FILE);
+        SelectPictureActivity.start(this , REQUEST_CODE_SELECT_FILE);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_CODE_SELECT_FILE && resultCode == RESULT_OK) {
-            List<String> paths = FilePickerManager.INSTANCE.obtainData();
-            if (paths != null && paths.size() > 0) {
-                final String filePath = paths.get(0);
-                System.out.println("filepath = " + filePath);
-                openVideo(filePath);
-            }
+//            List<String> paths = FilePickerManager.INSTANCE.obtainData();
+//            if (paths != null && paths.size() > 0) {
+//                final String filePath = paths.get(0);
+//                System.out.println("filepath = " + filePath);
+//                openVideo(filePath);
+//            }
+
+            String filepath = data.getStringExtra("imgPath");
+            openVideo(filepath);
         }
     }
 }//end class
