@@ -28,6 +28,9 @@
 
         <activity android:name=".VideoPlayerActivity">
         </activity>
+
+        <activity android:name=".VideoDecodePlayerActivity">
+        </activity>
     </application>
 
 </manifest>

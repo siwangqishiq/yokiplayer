@@ -35,7 +35,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void openVideo(String filepath){
-        VideoPlayerActivity.start(this , filepath);
+        // VideoPlayerActivity.start(this , filepath);
+        VideoDecodePlayerActivity.start(this , filepath);
     }
 
     private void selectFile(){
